@@ -1,7 +1,7 @@
 kind: io.statefun.endpoints.v2/http
 spec:
   functions: com.github.f1xman.statefun/*
-  urlPathTemplate: http://mbp:8096/api
+  urlPathTemplate: http://host.testcontainers.internal:8096/api
   transport:
     type: io.statefun.transports.v1/async
 ---

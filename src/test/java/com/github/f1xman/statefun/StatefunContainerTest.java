@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import static com.github.f1xman.statefun.ModuleServer.getHostAddress;
 import static com.github.f1xman.statefun.TestFunction.*;
+import static org.testcontainers.containers.GenericContainer.INTERNAL_HOST_HOSTNAME;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.waitAtMost;
 
 @Testcontainers
@@ -24,7 +25,6 @@ class StatefunContainerTest {
 
     private static final int MODULE_PORT = 8096;
     private static final String INGRESS_TOPIC = "testcontainers-statefun-in";
-    private static final String MODULE_HOST = "mbp";
     private static final String FUNCTION_ID = "functionId";
 
     @Container
@@ -37,7 +37,7 @@ class StatefunContainerTest {
             "module.yaml"
     )
             .withNetwork(Network.SHARED)
-            .withExtraHost(MODULE_HOST, getHostAddress())
+            .withExtraHost(INTERNAL_HOST_HOSTNAME, getHostAddress())
             .dependsOn(kafka);
 
     private KafkaClient kafkaClient;
