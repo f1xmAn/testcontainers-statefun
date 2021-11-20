@@ -14,7 +14,7 @@ import static com.github.f1xman.statefun.StatefunContainer.Role.MASTER;
 import static com.github.f1xman.statefun.StatefunContainer.Role.WORKER;
 
 @RequiredArgsConstructor
-public class StatefunClusterContainer extends GenericContainer<StatefunClusterContainer> {
+public class StatefunClusterContainer implements Startable {
 
     private final List<StatefunContainer> containers;
 
@@ -34,19 +34,16 @@ public class StatefunClusterContainer extends GenericContainer<StatefunClusterCo
         containers.forEach(GenericContainer::stop);
     }
 
-    @Override
     public StatefunClusterContainer dependsOn(Startable... startables) {
         containers.forEach(c -> c.dependsOn(startables));
         return this;
     }
 
-    @Override
     public StatefunClusterContainer withNetwork(Network network) {
         containers.forEach(c -> c.withNetwork(network));
         return this;
     }
 
-    @Override
     public StatefunClusterContainer withExtraHost(String hostname, String ipAddress) {
         containers.forEach(c -> c.withExtraHost(hostname, ipAddress));
         return this;
