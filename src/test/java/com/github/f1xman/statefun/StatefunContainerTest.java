@@ -20,7 +20,7 @@ import static org.testcontainers.shaded.org.awaitility.Awaitility.waitAtMost;
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class StatefunClusterContainerTest {
+class StatefunContainerTest {
 
     private static final int MODULE_PORT = 8096;
     private static final String INGRESS_TOPIC = "testcontainers-statefun-in";
@@ -32,10 +32,10 @@ class StatefunClusterContainerTest {
             .withNetwork(Network.SHARED)
             .withNetworkAliases("kafka");
     @Container
-    private static final StatefunClusterContainer statefunCluster = StatefunClusterContainer.create(
-                    DockerImageName.parse("apache/flink-statefun:3.1.0-java11"),
-                    "module.yaml"
-            )
+    private static final StatefunContainer statefun = new StatefunContainer(
+            DockerImageName.parse("apache/flink-statefun:3.1.0-java11"),
+            "module.yaml"
+    )
             .withNetwork(Network.SHARED)
             .withExtraHost(MODULE_HOST, getHostAddress())
             .dependsOn(kafka);
@@ -48,7 +48,7 @@ class StatefunClusterContainerTest {
                 .withStatefulFunction(StatefulFunctionSpec.builder(TYPE)
                         .withSupplier(TestFunction::new)
                         .build());
-        statefunCluster.startModuleServer(statefulFunctions, MODULE_PORT);
+        statefun.startModuleServer(statefulFunctions, MODULE_PORT);
         kafkaClient = KafkaClient.create(kafka.getBootstrapServers());
         kafkaClient.subscribe(EGRESS_TOPIC);
     }

@@ -1,47 +1,53 @@
 package com.github.f1xman.statefun;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.flink.statefun.sdk.java.StatefulFunctions;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.lifecycle.Startable;
 import org.testcontainers.utility.DockerImageName;
 
-import static org.testcontainers.containers.BindMode.READ_ONLY;
+import java.util.List;
 
-@Slf4j
-public class StatefunContainer extends GenericContainer<StatefunContainer> {
+import static com.github.f1xman.statefun.ModuleServer.startRemoteModuleServer;
+import static com.github.f1xman.statefun.NodeContainer.Role.MASTER;
+import static com.github.f1xman.statefun.NodeContainer.Role.WORKER;
 
-    private static final String MODULE_CONTAINER_PATH = "/opt/statefun/modules/remote/module.yaml";
-    private static final String FLINK_CONF_CONTAINER_PATH = "/opt/flink/conf/flink-conf.yaml";
-    private static final String FLINK_CONF_RESOURCE_PATH = "flink-conf.yaml";
+public class StatefunContainer implements Startable {
 
-    public StatefunContainer(DockerImageName dockerImageName, Role role, String moduleResourcePath) {
-        super(dockerImageName);
-        withClasspathResourceMapping(moduleResourcePath, MODULE_CONTAINER_PATH, READ_ONLY);
-        withClasspathResourceMapping(FLINK_CONF_RESOURCE_PATH, FLINK_CONF_CONTAINER_PATH, READ_ONLY);
-        withReuse(false);
-        role.configureContainer(this);
+    private final List<NodeContainer> containers;
+
+    public StatefunContainer(DockerImageName dockerImageName, String modulePath) {
+        NodeContainer master = new NodeContainer(dockerImageName, MASTER, modulePath);
+        NodeContainer worker = new NodeContainer(dockerImageName, WORKER, modulePath).dependsOn(master);
+        containers = List.of(master, worker);
     }
 
-    enum Role {
+    @Override
+    public void start() {
+        containers.forEach(GenericContainer::start);
+    }
 
-        MASTER(6123),
-        WORKER(6122);
+    @Override
+    public void stop() {
+        containers.forEach(GenericContainer::stop);
+    }
 
-        private final Integer[] exposedPorts;
+    public StatefunContainer dependsOn(Startable... startables) {
+        containers.forEach(c -> c.dependsOn(startables));
+        return this;
+    }
 
-        Role(Integer... exposedPorts) {
-            this.exposedPorts = exposedPorts;
-        }
+    public StatefunContainer withNetwork(Network network) {
+        containers.forEach(c -> c.withNetwork(network));
+        return this;
+    }
 
-        public void configureContainer(StatefunContainer container) {
-            log.info("Configuring container using role {}", this);
-            container.withEnv("ROLE", getRoleName());
-            container.withEnv("MASTER_HOST", MASTER.getRoleName());
-            container.withNetworkAliases(getRoleName());
-            container.withExposedPorts(exposedPorts);
-        }
+    public StatefunContainer withExtraHost(String hostname, String ipAddress) {
+        containers.forEach(c -> c.withExtraHost(hostname, ipAddress));
+        return this;
+    }
 
-        public String getRoleName() {
-            return this.name().toLowerCase();
-        }
+    public void startModuleServer(StatefulFunctions statefulFunctions, int port) {
+        startRemoteModuleServer(statefulFunctions, port);
     }
 }
