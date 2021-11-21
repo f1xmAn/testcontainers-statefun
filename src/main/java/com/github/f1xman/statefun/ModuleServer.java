@@ -81,7 +81,7 @@ class ModuleServer {
     private static class HandlerSupplier implements Supplier<RequestReplyHandler> {
 
         @Setter
-        private volatile RequestReplyHandler handler;
+        private RequestReplyHandler handler;
 
         @Override
         public RequestReplyHandler get() {

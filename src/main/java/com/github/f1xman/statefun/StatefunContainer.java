@@ -6,16 +6,16 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.lifecycle.Startable;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 
 import static com.github.f1xman.statefun.NodeContainer.Role.MASTER;
 import static com.github.f1xman.statefun.NodeContainer.Role.WORKER;
 
 public class StatefunContainer implements Startable {
 
-    private static final ConcurrentMap<Integer, ModuleServer> servers = new ConcurrentHashMap<>();
+    private static final Map<Integer, ModuleServer> servers = new HashMap<>();
     private final List<NodeContainer> containers;
 
     public StatefunContainer(DockerImageName dockerImageName, String modulePath) {
