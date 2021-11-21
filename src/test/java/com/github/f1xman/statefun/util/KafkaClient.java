@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.f1xman.statefun.TestFunction.InOutMessage;
+import com.github.f1xman.statefun.InOutMessage;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class KafkaClient {

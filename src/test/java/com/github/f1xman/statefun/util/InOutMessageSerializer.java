@@ -3,7 +3,7 @@ package com.github.f1xman.statefun.util;
 import lombok.SneakyThrows;
 import org.apache.kafka.common.serialization.Serializer;
 
-import static com.github.f1xman.statefun.TestFunction.InOutMessage;
+import com.github.f1xman.statefun.InOutMessage;
 
 public class InOutMessageSerializer implements Serializer<InOutMessage> {
 

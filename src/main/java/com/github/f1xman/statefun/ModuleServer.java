@@ -4,6 +4,9 @@ import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.statefun.sdk.java.StatefulFunctions;
@@ -12,23 +15,29 @@ import org.apache.flink.statefun.sdk.java.slice.Slice;
 import org.apache.flink.statefun.sdk.java.slice.Slices;
 
 import java.net.InetAddress;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import static io.undertow.UndertowOptions.ENABLE_HTTP2;
+import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
+@RequiredArgsConstructor(access = PRIVATE)
 class ModuleServer {
 
-    static void startRemoteModuleServer(StatefulFunctions statefulFunctions, int port) {
-        RequestReplyHandler handler = statefulFunctions.requestReplyHandler();
+    private static final RequestReplyHandler EMPTY = new StatefulFunctions().requestReplyHandler();
+    private final HandlerSupplier handlerSupplier;
+
+    static ModuleServer start(int port) {
+        HandlerSupplier handlerSupplier = new HandlerSupplier(EMPTY);
         Undertow server =
                 Undertow.builder()
                         .addHttpListener(port, "0.0.0.0")
-                        .setHandler(new UndertowHttpHandler(handler))
+                        .setHandler(new UndertowHttpHandler(handlerSupplier))
                         .setServerOption(ENABLE_HTTP2, true)
                         .build();
         server.start();
+        return new ModuleServer(handlerSupplier);
     }
 
     @SneakyThrows
@@ -36,13 +45,14 @@ class ModuleServer {
         return InetAddress.getLocalHost().getHostAddress();
     }
 
+    void deployModule(StatefulFunctions statefulFunctions) {
+        handlerSupplier.setHandler(statefulFunctions.requestReplyHandler());
+    }
+
+    @RequiredArgsConstructor
     private static final class UndertowHttpHandler implements HttpHandler {
 
-        private final RequestReplyHandler handler;
-
-        UndertowHttpHandler(RequestReplyHandler handler) {
-            this.handler = Objects.requireNonNull(handler);
-        }
+        private final Supplier<RequestReplyHandler> handlerSupplier;
 
         @Override
         public void handleRequest(HttpServerExchange exchange) {
@@ -51,7 +61,7 @@ class ModuleServer {
 
         private void onRequestBody(HttpServerExchange exchange, byte[] requestBytes) {
             exchange.dispatch();
-            CompletableFuture<Slice> future = handler.handle(Slices.wrap(requestBytes));
+            CompletableFuture<Slice> future = handlerSupplier.get().handle(Slices.wrap(requestBytes));
             future.whenComplete((response, exception) -> onComplete(exchange, response, exception));
         }
 
@@ -64,6 +74,18 @@ class ModuleServer {
             }
             exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/octet-stream");
             exchange.getResponseSender().send(responseBytes.asReadOnlyByteBuffer());
+        }
+    }
+
+    @AllArgsConstructor
+    private static class HandlerSupplier implements Supplier<RequestReplyHandler> {
+
+        @Setter
+        private volatile RequestReplyHandler handler;
+
+        @Override
+        public RequestReplyHandler get() {
+            return handler;
         }
     }
 }

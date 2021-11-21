@@ -7,13 +7,15 @@ import org.testcontainers.lifecycle.Startable;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import static com.github.f1xman.statefun.ModuleServer.startRemoteModuleServer;
 import static com.github.f1xman.statefun.NodeContainer.Role.MASTER;
 import static com.github.f1xman.statefun.NodeContainer.Role.WORKER;
 
 public class StatefunContainer implements Startable {
 
+    private static final ConcurrentMap<Integer, ModuleServer> servers = new ConcurrentHashMap<>();
     private final List<NodeContainer> containers;
 
     public StatefunContainer(DockerImageName dockerImageName, String modulePath) {
@@ -47,7 +49,8 @@ public class StatefunContainer implements Startable {
         return this;
     }
 
-    public void startModuleServer(StatefulFunctions statefulFunctions, int port) {
-        startRemoteModuleServer(statefulFunctions, port);
+    public void deployStatefulFunctions(StatefulFunctions statefulFunctions, int port) {
+        ModuleServer server = servers.computeIfAbsent(port, ModuleServer::start);
+        server.deployModule(statefulFunctions);
     }
 }
